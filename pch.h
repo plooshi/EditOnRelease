@@ -12,11 +12,8 @@
 #include "plooshfinder/include/formats/pe.h"
 #include "plooshfinder/include/plooshfinder8.h"
 #include "plooshfinder/include/plooshfinder.h"
-#include <string_view>
 #include <array>
-#include "plooshfinder/include/plooshfinder_sig.h"
 #include <string>
-#include <algorithm>
 
 enum EActivationMethod {
 	CommandLine,
