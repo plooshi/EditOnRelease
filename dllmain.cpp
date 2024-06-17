@@ -71,17 +71,25 @@ bool StringCallback(struct pf_patch_t* patch, void* stream) {
                         break;
                     case 2:
 						SelectReset = FollowRelative<decltype(SelectReset)>((uint8_t*) stream + i, 3);
+                        for (int x = 1; x < 2048; x++) {
+                            if (CheckBytes<0x48, 0x8D>(stream, i + x)) {
+                                void* naddr = FollowRelative<void>((uint8_t*) stream + i + x, 3);
+                                if (__int64(naddr) >= __int64(rbuf) && __int64(naddr) < (__int64(rbuf) + (int64_t)rsize)) {
+									if (strcmp((char*)naddr, "CompleteBuildingEditInteraction") == 0) {
+										for (int y = 1; y < 2048; y++) {
+                                            if (CheckBytes<0x48, 0x8D>((uint8_t*) stream + i + x, y, true)) {
+                                                CompleteEdit = FollowRelative<decltype(CompleteEdit)>((uint8_t*)stream + i + x - y, 3);
+                                                goto _;
+                                            }
+										}
+									}
+                                }
+                            }
+                        }
+                        _:
                         break;
                     }
                     sc++;
-                }
-            }
-        }
-		else if (strcmp((char*)saddr, "CompleteBuildingEditInteraction") == 0 && !CompleteEdit) {
-            for (int i = 1; i < 2048; i++) {
-                if (CheckBytes<0x48, 0x8D>(stream, i, true)) {
-                    CompleteEdit = FollowRelative<decltype(CompleteEdit)>((uint8_t *) stream - i, 3);
-                    break;
                 }
             }
         }
