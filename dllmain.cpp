@@ -146,19 +146,22 @@ void Main() {
 
     while (!pf_patchset_emit(tbuf, tsize, patchset));
 
-    std::wstring ws(VersionString);
-#pragma warning(suppress: 4244)
-    std::string s(ws.begin(), ws.end());
-	auto VStart = s.find_first_of('-');
-	auto VEnd = s.find_first_of('-', VStart + 1);
-	auto FNVer = std::stod(s.substr(VStart + 1, VEnd - VStart - 1));
+	auto VStart = wcschr(VersionString, '-') + 1;
+	auto VEnd = wcschr(VStart, '-');
+	auto sz = (VEnd - VStart) * 2;
+    wchar_t *s = (wchar_t *) malloc(sz + 2);
+	__movsb((PBYTE) s, (const PBYTE) VStart, sz);
+	s[sz] = 0;
+
+    wchar_t* e;
+	auto FNVer = wcstod(s, &e);
     MH_Initialize();
 	if (FNVer < 11.00) Hook(SelectEdit, SelectEditHook, SelectEditOG);
     if (FNVer < 24.30) Hook(SelectReset, SelectResetHook, SelectResetOG);
     MH_EnableHook(MH_ALL_HOOKS);
     if (ActivationMethod == CommandLine || ActivationMethod == Both) {
         auto cmd = GetCommandLineA();
-        if (std::string(cmd).find("-eor") != std::string::npos) {
+        if (strstr(cmd, "-eor")) {
             EOR = true;
         }
     }
