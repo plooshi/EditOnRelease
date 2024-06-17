@@ -54,14 +54,14 @@ std::remove_pointer_t<T>* FollowRelative(void* base, int offset) {
 void *(*SelectEdit)(void *) = nullptr;
 void *(*SelectReset)(void *) = nullptr;
 char (*CompleteEdit)(void *) = nullptr;
-wchar_t* (*GetVersionString)() = nullptr;
+wchar_t* VersionString = nullptr;
 
 bool skip = false;
 
 bool StringCallback(struct pf_patch_t* patch, void* stream) {
     void* saddr = FollowRelative<void>(stream, 3);
     if (__int64(saddr) >= __int64(rbuf) && __int64(saddr) < (__int64(rbuf) + (int64_t)rsize)) {
-        if (wcscmp((wchar_t *) saddr, L"EditModeInputComponent0") == 0) {
+        if (wcscmp((wchar_t *) saddr, L"EditModeInputComponent0") == 0 && !SelectEdit && !SelectReset) {
             int sc = 0;
             for (int i = 1; i < 2048; i++) {
                 if (CheckBytes<0x48, 0x8D, 0x05>(stream, i)) {
@@ -77,7 +77,7 @@ bool StringCallback(struct pf_patch_t* patch, void* stream) {
                 }
             }
         }
-		else if (strcmp((char*)saddr, "CompleteBuildingEditInteraction") == 0) {
+		else if (strcmp((char*)saddr, "CompleteBuildingEditInteraction") == 0 && !CompleteEdit) {
             for (int i = 1; i < 2048; i++) {
                 if (CheckBytes<0x48, 0x8D>(stream, i, true)) {
                     CompleteEdit = FollowRelative<decltype(CompleteEdit)>((uint8_t *) stream - i, 3);
@@ -85,11 +85,11 @@ bool StringCallback(struct pf_patch_t* patch, void* stream) {
                 }
             }
         }
-		else if (wcsncmp((wchar_t*)saddr, L"++Fortnite+Release-", 19) == 0) {
-            GetVersionString = decltype(GetVersionString)(stream);
+		else if (wcsncmp((wchar_t*)saddr, L"++Fortnite+Release-", 19) == 0 && !VersionString) {
+			VersionString = (wchar_t*)saddr;
 		}
     }
-    return SelectEdit && SelectReset && CompleteEdit && GetVersionString;
+    return SelectEdit && SelectReset && CompleteEdit && VersionString;
 }
 
 bool EOR = false;
@@ -146,7 +146,7 @@ void Main() {
 
     while (!pf_patchset_emit(tbuf, tsize, patchset));
 
-    std::wstring ws(GetVersionString());
+    std::wstring ws(VersionString);
 #pragma warning(suppress: 4244)
     std::string s(ws.begin(), ws.end());
 	auto VStart = s.find_first_of('-');
