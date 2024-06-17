@@ -18,10 +18,9 @@ __forceinline void Hook(void *ptr, void* detour, T& og = nullptrForHook) {
     MH_CreateHook(ptr, detour, std::is_same_v<T, void*> ? nullptr : (LPVOID*)&og);
 }
 
-__declspec(noinline) bool InternalCheckBytes(void* base, int ind, const uint8_t* bytes, size_t sz, bool upwards = false) {
-    auto offBase = (uint8_t*)(upwards ? __int64(base) - ind : __int64(base) + ind);
+__declspec(noinline) bool InternalCheckBytes(void* base, const uint8_t* bytes, size_t sz, bool upwards = false) {
     for (int i = 0; i < sz; i++) {
-        if (*(offBase + i) != bytes[i]) return false;
+        if (*((uint8_t *) base + i) != bytes[i]) return false;
     }
     return true;
 }
@@ -31,17 +30,15 @@ class CheckBytes {
 public:
     constexpr static uint8_t bytes[sizeof...(Data)] = { Data... };
     void* Base;
-    int Ind;
     bool Upwards;
 
-    CheckBytes(void* base, int ind, bool upwards = false) {
+    CheckBytes(void* base, bool upwards = false) {
         Base = base;
-        Ind = ind;
         Upwards = upwards;
     }
 
     operator bool() {
-        return InternalCheckBytes(Base, Ind, bytes, sizeof...(Data), Upwards);
+        return InternalCheckBytes(Base, bytes, sizeof...(Data), Upwards);
     }
 };
 
@@ -64,21 +61,24 @@ bool StringCallback(struct pf_patch_t* patch, void* stream) {
         if (wcscmp((wchar_t *) saddr, L"EditModeInputComponent0") == 0 && !SelectEdit && !SelectReset) {
             int sc = 0;
             for (int i = 1; i < 2048; i++) {
-                if (CheckBytes<0x48, 0x8D, 0x05>(stream, i)) {
+				auto sI = (uint8_t*)stream + i;
+                if (CheckBytes<0x48, 0x8D, 0x05>(sI)) {
                     switch (sc) {
                     case 1:
-						SelectEdit = FollowRelative<decltype(SelectEdit)>((uint8_t*) stream + i, 3);
+						SelectEdit = FollowRelative<decltype(SelectEdit)>(sI, 3);
                         break;
                     case 2:
-						SelectReset = FollowRelative<decltype(SelectReset)>((uint8_t*) stream + i, 3);
+						SelectReset = FollowRelative<decltype(SelectReset)>(sI, 3);
                         for (int x = 1; x < 2048; x++) {
-                            if (CheckBytes<0x48, 0x8D>(stream, i + x)) {
-                                void* naddr = FollowRelative<void>((uint8_t*) stream + i + x, 3);
+                            auto sX = sI + x;
+                            if (CheckBytes<0x48, 0x8D>(sX)) {
+                                void* naddr = FollowRelative<void>(sX, 3);
                                 if (__int64(naddr) >= __int64(rbuf) && __int64(naddr) < (__int64(rbuf) + (int64_t)rsize)) {
 									if (strcmp((char*)naddr, "CompleteBuildingEditInteraction") == 0) {
 										for (int y = 1; y < 2048; y++) {
-                                            if (CheckBytes<0x48, 0x8D>((uint8_t*) stream + i + x, y, true)) {
-                                                CompleteEdit = FollowRelative<decltype(CompleteEdit)>((uint8_t*)stream + i + x - y, 3);
+											auto sY = sX - y;
+                                            if (CheckBytes<0x48, 0x8D>(sY, true) || CheckBytes<0x4C, 0x8D>(sY, true)) {
+                                                CompleteEdit = FollowRelative<decltype(CompleteEdit)>(sY, 3);
                                                 goto _;
                                             }
 										}
