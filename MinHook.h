@@ -736,7 +736,7 @@ BOOL IsCodePadding(LPBYTE pInst, UINT size)
 #define DELTA_OP_ONLY_MEM  0x1d8
 #define DELTA_OP2_ONLY_MEM 0x1e7
 
-unsigned char hde64_table[] = {
+const unsigned char hde64_table[] = {
   0xa5,0xaa,0xa5,0xb8,0xa5,0xaa,0xa5,0xaa,0xa5,0xb8,0xa5,0xb8,0xa5,0xb8,0xa5,
   0xb8,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xac,0xc0,0xcc,0xc0,0xa1,0xa1,
   0xa1,0xa1,0xb1,0xa5,0xa5,0xa6,0xc0,0xc0,0xd7,0xda,0xe0,0xc0,0xe4,0xc0,0xea,
@@ -855,7 +855,8 @@ typedef struct {
 unsigned int hde64_disasm(const void* code, hde64s* hs)
 {
     uint8_t x, c, * p = (uint8_t*)code, cflags, opcode, pref = 0;
-    uint8_t* ht = hde64_table, m_mod, m_reg, m_rm, disp_size = 0;
+    uint8_t m_mod, m_reg, m_rm, disp_size = 0;
+    const uint8_t* ht = hde64_table;
     uint8_t op64 = 0;
 
 #ifndef _MSC_VER
@@ -980,7 +981,8 @@ pref_done:
                 hs->flags |= F_ERROR | F_ERROR_LOCK;
             }
             else {
-                uint8_t* table_end, op = opcode;
+                const uint8_t* table_end;
+                uint8_t op = opcode;
                 if (hs->opcode2) {
                     ht = hde64_table + DELTA_OP2_LOCK_OK;
                     table_end = ht + DELTA_OP_ONLY_MEM - DELTA_OP2_LOCK_OK;
@@ -1035,7 +1037,7 @@ pref_done:
         }
 
         if (m_mod == 3) {
-            uint8_t* table_end;
+            const uint8_t* table_end;
             if (hs->opcode2) {
                 ht = hde64_table + DELTA_OP2_ONLY_MEM;
                 table_end = ht + sizeof(hde64_table) - DELTA_OP2_ONLY_MEM;

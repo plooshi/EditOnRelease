@@ -54,6 +54,7 @@ std::remove_pointer_t<T>* FollowRelative(void* base, int offset) {
 void *(*SelectEdit)(void *) = nullptr;
 void *(*SelectReset)(void *) = nullptr;
 char (*CompleteEdit)(void *) = nullptr;
+wchar_t* (*GetVersionString)() = nullptr;
 
 bool skip = false;
 
@@ -84,8 +85,11 @@ bool StringCallback(struct pf_patch_t* patch, void* stream) {
                 }
             }
         }
+		else if (wcsncmp((wchar_t*)saddr, L"++Fortnite+Release-", 19) == 0) {
+            GetVersionString = decltype(GetVersionString)(stream);
+		}
     }
-    return SelectEdit && SelectReset && CompleteEdit;
+    return SelectEdit && SelectReset && CompleteEdit && GetVersionString;
 }
 
 bool EOR = false;
@@ -141,9 +145,16 @@ void Main() {
     constexpr static struct pf_patchset_t patchset = pf_construct_patchset(patches, sizeof(patches) / sizeof(struct pf_patch_t), pf_find_maskmatch);
 
     while (!pf_patchset_emit(tbuf, tsize, patchset));
+
+    std::wstring ws(GetVersionString());
+#pragma warning(suppress: 4244)
+    std::string s(ws.begin(), ws.end());
+	auto VStart = s.find_first_of('-');
+	auto VEnd = s.find_first_of('-', VStart + 1);
+	auto FNVer = std::stod(s.substr(VStart + 1, VEnd - VStart - 1));
     MH_Initialize();
-	Hook(SelectEdit, SelectEditHook, SelectEditOG);
-    Hook(SelectReset, SelectResetHook, SelectResetOG);
+	if (FNVer < 11.00) Hook(SelectEdit, SelectEditHook, SelectEditOG);
+    if (FNVer < 24.30) Hook(SelectReset, SelectResetHook, SelectResetOG);
     MH_EnableHook(MH_ALL_HOOKS);
     if (ActivationMethod == CommandLine || ActivationMethod == Both) {
         auto cmd = GetCommandLineA();
