@@ -154,8 +154,9 @@ void Main() {
 
     while (!pf_patchset_emit(tbuf, tsize, patchset));
 
-	auto VStart = wcschr(VersionString, '-') + 1;
+    auto VStart = wcschr(VersionString, '-') + 1;
 	auto VEnd = wcschr(VStart, '-');
+	if (VEnd == nullptr) VEnd = wcschr(VStart, 0);
 	auto sz = (VEnd - VStart) * 2;
     wchar_t *s = (wchar_t *) malloc(sz + 2);
 	__movsb((PBYTE) s, (const PBYTE) VStart, sz);
